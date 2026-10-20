@@ -4,7 +4,7 @@
 
 int main(void)
 {
-    InitWindow(1000, 650, "Supply Chain Simulator");
+    InitWindow(1000, 750, "Supply Chain Simulator");
     SetTargetFPS(60);
 
     int day = 1;
@@ -25,9 +25,9 @@ int main(void)
 
     while (!WindowShouldClose())
     {
-        Rectangle buyButton = {50, 420, 250, 60};
-        Rectangle sellButton = {350, 420, 250, 60};
-        Rectangle nextButton = {650, 420, 250, 60};
+        Rectangle buyButton = {40, 525, 280, 65};
+        Rectangle sellButton = {360, 525, 280, 65};
+        Rectangle nextButton = {680, 525, 260, 65};
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -131,72 +131,101 @@ int main(void)
         // Profit is revenue minus purchasing costs
         int profit = revenue - purchaseCosts;
 
+
+        
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        DrawText("SUPPLY CHAIN SIMULATOR",
-                 50, 30, 32, DARKBLUE);
+        // Header
+        DrawText("SUPPLY CHAIN SIMULATOR", 40, 25, 30, DARKBLUE);
+        DrawText(TextFormat("DAY %d", day), 40, 70, 22, DARKGRAY);
 
-        DrawText(TextFormat("DAY %d", day),
-                 50, 85, 24, DARKGRAY);
+        // Dashboard cards
+        DrawRectangleRounded((Rectangle){40, 110, 440, 145},
+                             0.08f, 8, (Color){240, 244, 248, 255});
+        DrawText("BUSINESS OVERVIEW", 60, 125, 20, DARKBLUE);
+        DrawText(TextFormat("Cash: EUR %d", cash), 60, 160, 20, DARKGREEN);
+        DrawText(TextFormat("Warehouse stock: %d", stock), 60, 190, 20, DARKGRAY);
+        DrawText(TextFormat("Customer demand: %d", demand), 60, 220, 20, DARKGRAY);
 
-        DrawText(TextFormat("Cash: EUR %d", cash),
-                 50, 130, 24, DARKGREEN);
+        DrawRectangleRounded((Rectangle){500, 110, 440, 145},
+                             0.08f, 8, (Color){240, 244, 248, 255});
+        DrawText("FINANCIAL SUMMARY", 520, 125, 20, DARKBLUE);
+        DrawText(TextFormat("Revenue: EUR %d", revenue), 520, 160, 20, DARKGREEN);
+        DrawText(TextFormat("Purchases: EUR %d", purchaseCosts), 520, 190, 20, MAROON);
+        DrawText(TextFormat("Profit: EUR %d", profit), 520, 220, 20,
+                 profit >= 0 ? DARKGREEN : RED);
 
-        DrawText(TextFormat("Warehouse stock: %d units", stock),
-                 50, 175, 22, DARKGRAY);
+        // Supply chain
+        DrawText("SUPPLY CHAIN FLOW", 40, 285, 22, DARKBLUE);
 
-        DrawText(TextFormat("Customer demand: %d units", demand),
-                 50, 215, 22, DARKGRAY);
+        // Supplier
+        DrawRectangleRounded((Rectangle){40, 330, 250, 105},
+                             0.12f, 8, (Color){230, 230, 230, 255});
+        DrawText("SUPPLIER", 105, 345, 20, DARKBLUE);
 
-        DrawText(TextFormat("Total units sold: %d", totalSold),
-                 50, 255, 22, DARKGRAY);
-
-        DrawText(TextFormat("Revenue: EUR %d", revenue),
-                 500, 130, 22, DARKGREEN);
-
-        DrawText(TextFormat("Purchases: EUR %d", purchaseCosts),
-                 500, 175, 22, MAROON);
-
-        DrawText(TextFormat("Profit: EUR %d", profit),
-                 500, 220, 24, profit >= 0 ? DARKGREEN : RED);
-
-        // Supplier delivery status
         if (pendingStock > 0)
         {
-            DrawText(
-                TextFormat("Delivery: %d units - arrives Day %d",
-                           pendingStock, deliveryDay),
-                50, 305, 20, ORANGE
-            );
+            DrawText(TextFormat("%d units in transit", pendingStock),
+                     60, 380, 17, ORANGE);
+            DrawText(TextFormat("Arrives Day %d", deliveryDay),
+                     60, 405, 17, DARKGRAY);
         }
         else
         {
-            DrawText("Delivery: No orders in transit",
-                     50, 305, 20, GRAY);
+            DrawText("No delivery pending", 60, 385, 17, DARKGRAY);
         }
 
-        // Latest action feedback
-        DrawText("Latest update:", 50, 350, 18, DARKBLUE);
-        DrawText(status, 190, 350, 18, DARKGRAY);
+        // Arrow to warehouse
+        DrawLineEx((Vector2){290, 380}, (Vector2){345, 380}, 4, GRAY);
+        DrawTriangle((Vector2){345, 372}, (Vector2){345, 388},
+                     (Vector2){357, 380}, GRAY);
 
-        // Buttons
-        DrawRectangleRec(buyButton, BLUE);
-        DrawText("Order 5 Units - EUR 40",
-                 65, 440, 19, WHITE);
+        // Warehouse
+        DrawRectangleRounded((Rectangle){360, 330, 250, 105},
+                             0.12f, 8, SKYBLUE);
+        DrawText("WAREHOUSE", 415, 345, 20, DARKBLUE);
+        DrawText(TextFormat("%d units in stock", stock),
+                 390, 385, 19, DARKBLUE);
 
-        DrawRectangleRec(sellButton, DARKGREEN);
-        DrawText("Sell to Customers",
-                 375, 440, 20, WHITE);
+        // Arrow to customers
+        DrawLineEx((Vector2){610, 380}, (Vector2){665, 380},
+                   4, stock > 0 ? DARKGREEN : GRAY);
+        DrawTriangle((Vector2){665, 372}, (Vector2){665, 388},
+                     (Vector2){677, 380},
+                     stock > 0 ? DARKGREEN : GRAY);
 
-        DrawRectangleRec(nextButton, DARKBLUE);
-        DrawText("Advance Day",
-                 700, 440, 20, WHITE);
+        // Customers
+        DrawRectangleRounded((Rectangle){680, 330, 260, 105},
+                             0.12f, 8, (Color){210, 245, 220, 255});
+        DrawText("CUSTOMERS", 750, 345, 20, DARKGREEN);
+        DrawText(TextFormat("Demand: %d units", demand),
+                 735, 385, 19, DARKGREEN);
 
-        DrawText("Orders take two days to arrive. Each unit sells for EUR 15.",
-                 50, 535, 18, GRAY);
+        // Latest update in its own area
+        DrawRectangleRounded((Rectangle){40, 455, 900, 45},
+                             0.08f, 8, (Color){245, 245, 245, 255});
+        DrawText("LATEST UPDATE", 55, 468, 17, DARKBLUE);
+        DrawText(status, 205, 468, 17, DARKGRAY);
+
+        // Action buttons
+        DrawRectangleRounded((Rectangle){40, 525, 280, 65},
+                             0.12f, 8, BLUE);
+        DrawText("Order 5 Units - EUR 40", 55, 547, 18, WHITE);
+
+        DrawRectangleRounded((Rectangle){360, 525, 280, 65},
+                             0.12f, 8, DARKGREEN);
+        DrawText("Sell to Customers", 390, 547, 20, WHITE);
+
+        DrawRectangleRounded((Rectangle){680, 525, 260, 65},
+                             0.12f, 8, DARKBLUE);
+        DrawText("Advance Day", 750, 547, 20, WHITE);
+
+        DrawText("Supplier orders take two days to arrive.",
+                 40, 620, 16, GRAY);
 
         EndDrawing();
+
     }
 
     CloseWindow();
