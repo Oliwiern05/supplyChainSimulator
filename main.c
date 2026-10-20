@@ -7,33 +7,49 @@ int main(void)
     InitWindow(1000, 750, "Supply Chain Simulator");
     SetTargetFPS(60);
 
+    // Load Roboto font
+    Font appFont = LoadFontEx(
+        "C:/Users/perit/supplyChainSimulator/Roboto-Regular.ttf",
+        32, NULL, 0
+    );
+
+    if (!IsFontValid(appFont))
+    {
+        TraceLog(LOG_ERROR, "Roboto font failed to load!");
+        CloseWindow();
+        return 1;
+    }
+
+    TraceLog(LOG_INFO, "Roboto font loaded successfully!");
+
     int day = 1;
     int cash = 200;
     int stock = 10;
     int demand = 5;
     int totalSold = 0;
 
-    // Financial tracking
     int revenue = 0;
     int purchaseCosts = 0;
+    int operatingCosts = 0;
 
-    // Supplier delivery tracking
     int pendingStock = 0;
     int deliveryDay = 0;
+
+    const int dailyOperatingCost = 10;
 
     char status[128] = "Welcome! Manage your supply chain.";
 
     while (!WindowShouldClose())
     {
-        Rectangle buyButton = {40, 525, 280, 65};
-        Rectangle sellButton = {360, 525, 280, 65};
-        Rectangle nextButton = {680, 525, 260, 65};
+        Rectangle buyButton = {40, 535, 280, 65};
+        Rectangle sellButton = {360, 535, 280, 65};
+        Rectangle nextButton = {680, 535, 260, 65};
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             Vector2 mouse = GetMousePosition();
 
-            // Order 5 units from the supplier
+            // Order stock from supplier
             if (CheckCollisionPointRec(mouse, buyButton))
             {
                 if (pendingStock > 0)
@@ -61,12 +77,12 @@ int main(void)
             }
 
             // Sell goods to customers
-            if (CheckCollisionPointRec(mouse, sellButton))
+            else if (CheckCollisionPointRec(mouse, sellButton))
             {
                 if (demand == 0)
                 {
                     snprintf(status, sizeof(status),
-                             "You have already served today's demand.");
+                             "Today's demand has already been served.");
                 }
                 else
                 {
@@ -88,7 +104,7 @@ int main(void)
                     if (unmetDemand > 0)
                     {
                         snprintf(status, sizeof(status),
-                                 "Sold %d units. %d customers went unserved.",
+                                 "Sold %d units. %d customers unserved.",
                                  sold, unmetDemand);
                     }
                     else
@@ -100,134 +116,202 @@ int main(void)
                 }
             }
 
-            // Advance to the next day
-            if (CheckCollisionPointRec(mouse, nextButton))
+            // Advance day and charge operating costs
+            else if (CheckCollisionPointRec(mouse, nextButton))
             {
                 day++;
 
+                cash -= dailyOperatingCost;
+                operatingCosts += dailyOperatingCost;
+
                 demand = GetRandomValue(3, 9);
 
-                // Receive supplier delivery when it is due
+                snprintf(status, sizeof(status),
+                         "Day %d started. EUR %d operating cost charged.",
+                         day, dailyOperatingCost);
+
+                // Receive supplier delivery when due
                 if (pendingStock > 0 && day >= deliveryDay)
                 {
-                    stock += pendingStock;
-
-                    snprintf(status, sizeof(status),
-                             "Delivery received! %d units added to stock.",
-                             pendingStock);
+                    int received = pendingStock;
+                    stock += received;
 
                     pendingStock = 0;
                     deliveryDay = 0;
-                }
-                else
-                {
+
                     snprintf(status, sizeof(status),
-                             "Day %d started. New demand: %d units.",
-                             day, demand);
+                             "Delivery received! %d units added to stock.",
+                             received);
                 }
             }
         }
 
-        // Profit is revenue minus purchasing costs
-        int profit = revenue - purchaseCosts;
+        int profit = revenue - purchaseCosts - operatingCosts;
 
-
-        
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
         // Header
-        DrawText("SUPPLY CHAIN SIMULATOR", 40, 25, 30, DARKBLUE);
-        DrawText(TextFormat("DAY %d", day), 40, 70, 22, DARKGRAY);
+        DrawTextEx(appFont, "SUPPLY CHAIN SIMULATOR",
+                   (Vector2){40, 25}, 30, 1, DARKBLUE);
 
-        // Dashboard cards
-        DrawRectangleRounded((Rectangle){40, 110, 440, 145},
-                             0.08f, 8, (Color){240, 244, 248, 255});
-        DrawText("BUSINESS OVERVIEW", 60, 125, 20, DARKBLUE);
-        DrawText(TextFormat("Cash: EUR %d", cash), 60, 160, 20, DARKGREEN);
-        DrawText(TextFormat("Warehouse stock: %d", stock), 60, 190, 20, DARKGRAY);
-        DrawText(TextFormat("Customer demand: %d", demand), 60, 220, 20, DARKGRAY);
+        DrawTextEx(appFont, TextFormat("DAY %d", day),
+                   (Vector2){40, 70}, 22, 1, DARKGRAY);
 
-        DrawRectangleRounded((Rectangle){500, 110, 440, 145},
-                             0.08f, 8, (Color){240, 244, 248, 255});
-        DrawText("FINANCIAL SUMMARY", 520, 125, 20, DARKBLUE);
-        DrawText(TextFormat("Revenue: EUR %d", revenue), 520, 160, 20, DARKGREEN);
-        DrawText(TextFormat("Purchases: EUR %d", purchaseCosts), 520, 190, 20, MAROON);
-        DrawText(TextFormat("Profit: EUR %d", profit), 520, 220, 20,
-                 profit >= 0 ? DARKGREEN : RED);
+        // Business overview
+        DrawRectangleRounded(
+            (Rectangle){40, 110, 440, 145},
+            0.08f, 8, (Color){240, 244, 248, 255});
 
-        // Supply chain
-        DrawText("SUPPLY CHAIN FLOW", 40, 285, 22, DARKBLUE);
+        DrawTextEx(appFont, "BUSINESS OVERVIEW",
+                   (Vector2){60, 125}, 20, 1, DARKBLUE);
+
+        DrawTextEx(appFont, TextFormat("Cash: EUR %d", cash),
+                   (Vector2){60, 160}, 20, 1, DARKGREEN);
+
+        DrawTextEx(appFont, TextFormat("Warehouse stock: %d units", stock),
+                   (Vector2){60, 190}, 18, 1, DARKGRAY);
+
+        DrawTextEx(appFont, TextFormat("Customer demand: %d units", demand),
+                   (Vector2){60, 220}, 18, 1, DARKGRAY);
+
+        // Financial summary
+        DrawRectangleRounded(
+            (Rectangle){500, 110, 440, 145},
+            0.08f, 8, (Color){240, 244, 248, 255});
+
+        DrawTextEx(appFont, "FINANCIAL SUMMARY",
+                   (Vector2){520, 125}, 20, 1, DARKBLUE);
+
+        DrawTextEx(appFont, TextFormat("Revenue: EUR %d", revenue),
+                   (Vector2){520, 158}, 19, 1, DARKGREEN);
+
+        DrawTextEx(appFont, TextFormat("Purchases: EUR %d", purchaseCosts),
+                   (Vector2){520, 184}, 19, 1, MAROON);
+
+        DrawTextEx(appFont, TextFormat("Operating costs: EUR %d", operatingCosts),
+                   (Vector2){520, 210}, 17, 1, MAROON);
+
+        DrawTextEx(appFont, TextFormat("Profit: EUR %d", profit),
+                   (Vector2){760, 232}, 19, 1,
+                   profit >= 0 ? DARKGREEN : RED);
+
+        DrawTextEx(appFont, TextFormat("Total units sold: %d", totalSold),
+                   (Vector2){40, 270}, 18, 1, DARKGRAY);
+
+        // Supply chain flow
+        DrawTextEx(appFont, "SUPPLY CHAIN FLOW",
+                   (Vector2){40, 300}, 22, 1, DARKBLUE);
 
         // Supplier
-        DrawRectangleRounded((Rectangle){40, 330, 250, 105},
-                             0.12f, 8, (Color){230, 230, 230, 255});
-        DrawText("SUPPLIER", 105, 345, 20, DARKBLUE);
+        DrawRectangleRounded(
+            (Rectangle){40, 345, 250, 105},
+            0.12f, 8, (Color){230, 230, 230, 255});
+
+        DrawTextEx(appFont, "SUPPLIER",
+                   (Vector2){105, 360}, 20, 1, DARKBLUE);
 
         if (pendingStock > 0)
         {
-            DrawText(TextFormat("%d units in transit", pendingStock),
-                     60, 380, 17, ORANGE);
-            DrawText(TextFormat("Arrives Day %d", deliveryDay),
-                     60, 405, 17, DARKGRAY);
+            DrawTextEx(appFont, TextFormat("%d units in transit", pendingStock),
+                       (Vector2){60, 395}, 17, 1, ORANGE);
+
+            DrawTextEx(appFont, TextFormat("Arrives Day %d", deliveryDay),
+                       (Vector2){60, 420}, 17, 1, DARKGRAY);
         }
         else
         {
-            DrawText("No delivery pending", 60, 385, 17, DARKGRAY);
+            DrawTextEx(appFont, "No delivery pending",
+                       (Vector2){60, 395}, 17, 1, DARKGRAY);
         }
 
-        // Arrow to warehouse
-        DrawLineEx((Vector2){290, 380}, (Vector2){345, 380}, 4, GRAY);
-        DrawTriangle((Vector2){345, 372}, (Vector2){345, 388},
-                     (Vector2){357, 380}, GRAY);
+        // Supplier to warehouse
+        DrawLineEx(
+            (Vector2){290, 395},
+            (Vector2){345, 395},
+            4, pendingStock > 0 ? ORANGE : GRAY);
+
+        DrawTriangle(
+            (Vector2){345, 387},
+            (Vector2){345, 403},
+            (Vector2){357, 395},
+            pendingStock > 0 ? ORANGE : GRAY);
 
         // Warehouse
-        DrawRectangleRounded((Rectangle){360, 330, 250, 105},
-                             0.12f, 8, SKYBLUE);
-        DrawText("WAREHOUSE", 415, 345, 20, DARKBLUE);
-        DrawText(TextFormat("%d units in stock", stock),
-                 390, 385, 19, DARKBLUE);
+        DrawRectangleRounded(
+            (Rectangle){360, 345, 250, 105},
+            0.12f, 8, SKYBLUE);
 
-        // Arrow to customers
-        DrawLineEx((Vector2){610, 380}, (Vector2){665, 380},
-                   4, stock > 0 ? DARKGREEN : GRAY);
-        DrawTriangle((Vector2){665, 372}, (Vector2){665, 388},
-                     (Vector2){677, 380},
-                     stock > 0 ? DARKGREEN : GRAY);
+        DrawTextEx(appFont, "WAREHOUSE",
+                   (Vector2){415, 360}, 20, 1, DARKBLUE);
+
+        DrawTextEx(appFont, TextFormat("%d units in stock", stock),
+                   (Vector2){390, 400}, 19, 1, DARKBLUE);
+
+        // Warehouse to customers
+        DrawLineEx(
+            (Vector2){610, 395},
+            (Vector2){665, 395},
+            4, stock > 0 ? DARKGREEN : GRAY);
+
+        DrawTriangle(
+            (Vector2){665, 387},
+            (Vector2){665, 403},
+            (Vector2){677, 395},
+            stock > 0 ? DARKGREEN : GRAY);
 
         // Customers
-        DrawRectangleRounded((Rectangle){680, 330, 260, 105},
-                             0.12f, 8, (Color){210, 245, 220, 255});
-        DrawText("CUSTOMERS", 750, 345, 20, DARKGREEN);
-        DrawText(TextFormat("Demand: %d units", demand),
-                 735, 385, 19, DARKGREEN);
+        DrawRectangleRounded(
+            (Rectangle){680, 345, 260, 105},
+            0.12f, 8, (Color){210, 245, 220, 255});
 
-        // Latest update in its own area
-        DrawRectangleRounded((Rectangle){40, 455, 900, 45},
-                             0.08f, 8, (Color){245, 245, 245, 255});
-        DrawText("LATEST UPDATE", 55, 468, 17, DARKBLUE);
-        DrawText(status, 205, 468, 17, DARKGRAY);
+        DrawTextEx(appFont, "CUSTOMERS",
+                   (Vector2){750, 360}, 20, 1, DARKGREEN);
+
+        DrawTextEx(appFont, TextFormat("Demand: %d units", demand),
+                   (Vector2){735, 400}, 19, 1, DARKGREEN);
+
+        // Latest update
+        DrawRectangleRounded(
+            (Rectangle){40, 465, 900, 45},
+            0.08f, 8, (Color){245, 245, 245, 255});
+
+        DrawTextEx(appFont, "LATEST UPDATE",
+                   (Vector2){55, 478}, 17, 1, DARKBLUE);
+
+        DrawTextEx(appFont, status,
+                   (Vector2){205, 478}, 17, 1, DARKGRAY);
 
         // Action buttons
-        DrawRectangleRounded((Rectangle){40, 525, 280, 65},
-                             0.12f, 8, BLUE);
-        DrawText("Order 5 Units - EUR 40", 55, 547, 18, WHITE);
+        DrawRectangleRounded(
+            (Rectangle){40, 535, 280, 65},
+            0.12f, 8, BLUE);
 
-        DrawRectangleRounded((Rectangle){360, 525, 280, 65},
-                             0.12f, 8, DARKGREEN);
-        DrawText("Sell to Customers", 390, 547, 20, WHITE);
+        DrawTextEx(appFont, "Order 5 Units - EUR 40",
+                   (Vector2){55, 557}, 18, 1, WHITE);
 
-        DrawRectangleRounded((Rectangle){680, 525, 260, 65},
-                             0.12f, 8, DARKBLUE);
-        DrawText("Advance Day", 750, 547, 20, WHITE);
+        DrawRectangleRounded(
+            (Rectangle){360, 535, 280, 65},
+            0.12f, 8, DARKGREEN);
 
-        DrawText("Supplier orders take two days to arrive.",
-                 40, 620, 16, GRAY);
+        DrawTextEx(appFont, "Sell to Customers",
+                   (Vector2){390, 557}, 20, 1, WHITE);
+
+        DrawRectangleRounded(
+            (Rectangle){680, 535, 260, 65},
+            0.12f, 8, DARKBLUE);
+
+        DrawTextEx(appFont, "Advance Day",
+                   (Vector2){750, 557}, 20, 1, WHITE);
+
+        DrawTextEx(appFont, "Supplier orders take two days to arrive.",
+                   (Vector2){40, 625}, 16, 1, GRAY);
 
         EndDrawing();
-
     }
 
+    UnloadFont(appFont);
     CloseWindow();
+
     return 0;
 }
