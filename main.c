@@ -9,8 +9,8 @@ int main(void)
 
     // Load Roboto font
     Font appFont = LoadFontEx(
-        "C:/Users/perit/supplyChainSimulator/Roboto-Regular.ttf",
-        32, NULL, 0
+    "Roboto-Regular.ttf",
+    32, NULL, 0
     );
 
     if (!IsFontValid(appFont))
